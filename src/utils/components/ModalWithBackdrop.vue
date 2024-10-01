@@ -2,7 +2,7 @@
     <teleport to="#main-component">
         <!-- Must teleport inside main-component in order for dynamic outlines to work and to be
         sure that it is always on top of the reset. -->
-        <div v-show="!hide && !hideForPrint" data-cy="modal-with-backdrop">
+        <div v-show="!hide && !hideForPrint" ref="modalRef" data-cy="modal-with-backdrop">
             <BlackBackdrop place-for-modal @click.stop="onClose(false)" />
             <div
                 class="modal-popup position-fixed start-50"
@@ -19,6 +19,7 @@
                     }"
                 >
                     <div
+                        ref="modalHeader"
                         class="card-header d-flex align-middle"
                         :class="{ 'bg-primary text-white border-primary': headerPrimary }"
                     >
@@ -80,6 +81,8 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import BlackBackdrop from '@/utils/components/BlackBackdrop.vue'
 import PrintButton from '@/utils/components/PrintButton.vue'
 
+import { useMovableElement } from '../composables/useMovableElement.composable'
+
 /**
  * Utility component that will wrap your modal content and make sure it is above the overlay of the
  * map
@@ -119,11 +122,22 @@ export default {
             type: Boolean,
             default: false,
         },
+        movable: {
+            type: Boolean,
+            default: false,
+        },
     },
     emits: ['close'],
     data() {
         return {
             hideForPrint: false,
+        }
+    },
+    mounted() {
+        if (this.movable) {
+            useMovableElement(this.$refs.modalRef, {
+                grabElement: this.$refs.modalHeader,
+            })
         }
     },
     methods: {
