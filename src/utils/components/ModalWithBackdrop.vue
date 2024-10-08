@@ -2,13 +2,15 @@
     <teleport to="#main-component">
         <!-- Must teleport inside main-component in order for dynamic outlines to work and to be
         sure that it is always on top of the reset. -->
-        <div v-show="!hide && !hideForPrint" ref="modalRef" data-cy="modal-with-backdrop">
+        <div v-show="!hide && !hideForPrint" data-cy="modal-with-backdrop">
             <BlackBackdrop place-for-modal @click.stop="onClose(false)" />
             <div
-                class="modal-popup position-fixed start-50"
+                ref="modalRef"
+                class="modal-popup position-fixed"
                 :class="{
-                    'top-50 translate-middle': !top,
-                    'translate-middle-x on-top-with-padding': top,
+                    'start-50': !movable,
+                    'top-50 translate-middle': !top && !movable,
+                    'translate-middle-x on-top-with-padding': top && !movable,
                 }"
             >
                 <div
@@ -80,6 +82,7 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 
 import BlackBackdrop from '@/utils/components/BlackBackdrop.vue'
 import PrintButton from '@/utils/components/PrintButton.vue'
+import log from '@/utils/logging'
 
 import { useMovableElement } from '../composables/useMovableElement.composable'
 
@@ -135,9 +138,31 @@ export default {
     },
     mounted() {
         if (this.movable) {
-            useMovableElement(this.$refs.modalRef, {
-                grabElement: this.$refs.modalHeader,
-            })
+            const modalElement = this.$refs.modalRef
+            if (modalElement) {
+                const modalRect = modalElement.getBoundingClientRect()
+                const modalLeft = window.innerWidth / 2 - modalRect.width / 2
+                let modalTop
+                if (this.top) {
+                    const rootFontSize = parseFloat(
+                        getComputedStyle(document.documentElement).fontSize
+                    )
+                    modalTop = 0.75 * rootFontSize // 0.75rem, the value of $card-spacer-y
+                } else {
+                    modalTop = window.innerHeight / 2 - modalRect.height / 2
+                }
+                const transform = this.top ? '' : 'translate(0%, -50%)'
+
+                // Remove positioning classes and set initial position
+                modalElement.style.position = 'static'
+                modalElement.style.top = `${modalTop}px`
+                modalElement.style.left = `${modalLeft}px`
+                modalElement.style.transform = transform
+
+                useMovableElement(modalElement, { grabElement: this.$refs.modalHeader })
+            } else {
+                log.error('Modal element not found')
+            }
         }
     },
     methods: {
